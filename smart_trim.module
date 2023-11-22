@@ -88,7 +88,7 @@ function smart_trim_field_formatter_view($entity_type, $entity, $field, $instanc
             // Only bother with this is we have to.
             if ($settings['trim_length'] < str_word_count($output)) {
               // Use \s or use PREG_CLASS_UNICODE_WORD_BOUNDARY?
-              $words = preg_split('/\s/', $output, NULL, PREG_SPLIT_NO_EMPTY);
+              $words = preg_split('/\s/', $output, -1, PREG_SPLIT_NO_EMPTY);
               $output2 = implode(" ", array_slice($words, 0, $settings['trim_length']));
               $output2 = _filter_htmlcorrector($output2);
             }
