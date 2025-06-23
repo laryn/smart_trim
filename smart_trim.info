@@ -1,11 +1,9 @@
+type = module
 name = Smart Trim
-description = Provides a more robust alternative to "summary or trimmed" textfield format
+description = Provides a more robust alternative to the core "Summary or Trimmed" formatter.
 backdrop = 1.x
 package = Fields
 
-files[] = smart_trim.module
 dependencies[] = filter
 dependencies[] = text
 
-type = module
-version = BACKDROP_VERSION
