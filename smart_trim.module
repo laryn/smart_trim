@@ -4,6 +4,10 @@
  * Module functionality.
  */
 
+define('SMART_TRIM_NEVER', 0);
+define('SMART_TRIM_ALWAYS', 1);
+define('SMART_TRIM_IFNEEDED', 2);
+
 /**
  * Implements hook_field_formatter_info().
  */
@@ -17,7 +21,7 @@ function smart_trim_field_formatter_info() {
         'trim_type' => 'chars',
         'trim_suffix' => '...',
         'trim_link' => FALSE,
-        'more_link' => FALSE,
+        'more_link' => SMART_TRIM_NEVER,
         'more_text' => 'Read more',
         'summary_handler' => 'full',
         'trim_options' => array(),
@@ -84,7 +88,7 @@ function smart_trim_field_formatter_view($entity_type, $entity, $field, $instanc
             // Only bother with this is we have to.
             if ($settings['trim_length'] < str_word_count($output)) {
               // Use \s or use PREG_CLASS_UNICODE_WORD_BOUNDARY?
-              $words = preg_split('/\s/', $output, NULL, PREG_SPLIT_NO_EMPTY);
+              $words = preg_split('/\s/', $output, -1, PREG_SPLIT_NO_EMPTY);
               $output2 = implode(" ", array_slice($words, 0, $settings['trim_length']));
               $output2 = _filter_htmlcorrector($output2);
             }
@@ -113,7 +117,7 @@ function smart_trim_field_formatter_view($entity_type, $entity, $field, $instanc
           }
 
           // Verify if we actually performed any shortening.
-          if (backdrop_strlen($output) != backdrop_strlen($output2)) {
+          if (backdrop_strlen(backdrop_html_to_text($output)) != backdrop_strlen(backdrop_html_to_text($output2))) {
             $shortened = TRUE;
           }
           $output = $output2;
@@ -129,10 +133,35 @@ function smart_trim_field_formatter_view($entity_type, $entity, $field, $instanc
           $extension = substr($extension, 1);
         }
 
-        // Add the link, if there is one!
+        // Final checks if we need to display a more link.
+        $needs_more = FALSE;
+        switch ($settings['more_link']) {
+          // If the user always wants the link, include it.
+          case SMART_TRIM_ALWAYS:
+            $needs_more = TRUE;
+            break;
+
+          case SMART_TRIM_IFNEEDED:
+            if ($shortened) {
+              $needs_more = TRUE;
+            }
+            else {
+              // If a summary is used (whether truncated or not), and it's
+              // different from the main body, we need to show the more link.
+              if (!empty($item['summary'])
+                  && $settings['summary_handler'] != 'ignore') {
+                $summary_output = _text_sanitize($instance, $langcode, $item, 'summary');
+                $full_output = _text_sanitize($instance, $langcode, $item, 'value');
+                if (strcmp($summary_output, $full_output) != 0) {
+                  $needs_more = TRUE;
+                }
+              }
+            }
+            break;
+        }
         $uri = entity_uri($entity_type, $entity);
-        // But wait! Don't add a more link if the field ends in <!--break-->.
-        if ($uri && $settings['more_link'] && strpos(strrev($output), strrev('<!--break-->')) !== 0) {
+
+        if ($uri && $needs_more) {
           $extension .= l(t('@more_text', array('@more_text' => $settings['more_text'])), $uri['path'], array('html' => TRUE, 'attributes' => array('class' => array('more-link'))));
         }
 
@@ -212,8 +241,9 @@ function smart_trim_field_formatter_settings_form($field, $instance, $view_mode,
     '#title' => t('Display more link?'),
     '#type' => 'select',
     '#options' => array(
-      0 => t("No"),
-      1 => t("Yes"),
+      SMART_TRIM_NEVER => t('Never'),
+      SMART_TRIM_ALWAYS => t('Always'),
+      SMART_TRIM_IFNEEDED => t('If needed (when using a summary or trimmed text)'),
     ),
     '#default_value' => $settings['more_link'],
     '#description' => t('Displays a link to the entity (if one exists)'),
@@ -225,6 +255,13 @@ function smart_trim_field_formatter_settings_form($field, $instance, $view_mode,
     '#size' => 20,
     '#default_value' => $settings['more_text'],
     '#description' => t('If displaying more link, enter the text for the link.'),
+    '#states' => array(
+      // Hide this field when $element['more_link'] is set to "Never".
+      // @see States Api : drupal_process_states()
+      'invisible' => array(
+        ':input[name="fields[body][settings_edit_form][settings][more_link]"]' => array('value' => SMART_TRIM_NEVER),
+      ),
+    ),
   );
 
   if ($field['type'] == 'text_with_summary') {
@@ -269,8 +306,14 @@ function smart_trim_field_formatter_settings_summary($field, $instance, $view_mo
   if (backdrop_strlen(trim($settings['trim_suffix']))) {
     $summary .= " " . t("with suffix");
   }
-  if ($settings['more_link']) {
-    $summary .= ", " . t("with more link");
+  switch ($settings['more_link']) {
+    case SMART_TRIM_ALWAYS:
+      $summary .= ', ' . t('with more link (always)');
+      break;
+
+    case SMART_TRIM_IFNEEDED:
+      $summary .= ', ' . t('with more link (if needed)');
+      break;
   }
   // Trim options summary.
   if (isset($settings['trim_link'])) {
