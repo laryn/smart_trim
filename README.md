@@ -37,9 +37,9 @@ https://github.com/backdrop-contrib/smart_trim/issues
 Current Maintainers
 -------------------
 
-- Said El fazni (https://github.com/fazni/)
-- opi (https://github.com/opi/)
-
+- [Said El fazni](https://github.com/fazni/)
+- [opi](https://github.com/opi/)
+- [Laryn Kragt Bakker](https://github.com/laryn/)
 
 Credits
 -------
