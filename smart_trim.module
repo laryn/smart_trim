@@ -98,22 +98,13 @@ function smart_trim_field_formatter_view($entity_type, $entity, $field, $instanc
             }
           }
           else {
-            // Use views_trim_text() if available.
-            if (module_exists('views')) {
-              views_include('utility');
-              $output2 = views_trim_text(array(
-                'max_length' => $settings['trim_length'],
-                'word_boundary' => TRUE,
-                'ellipsis' => FALSE,
-                'html' => TRUE,
-              ), $output);
-            }
-            else {
-              // @see https://api.backdropcms.org/api/backdrop/core!modules!field!modules!text!text.module/function/text_summary/1
-              // text_summary is smart about looking for paragraphs, sentences,
-              // etc, not strictly just length. Uses truncate_utf8 as well.
-              $output2 = text_summary($output, $instance['settings']['text_processing'] ? $item['format'] : NULL, $settings['trim_length']);
-            }
+            views_include('utility');
+            $output2 = views_trim_text(array(
+              'max_length' => $settings['trim_length'],
+              'word_boundary' => TRUE,
+              'ellipsis' => FALSE,
+              'html' => TRUE,
+            ), $output);
           }
 
           // Verify if we actually performed any shortening.
